@@ -1,0 +1,114 @@
+import streamlit as st
+import pandas as pd
+from finance import init_db, add_expense, get_expenses, get_summary
+
+st.set_page_config(
+    page_title="Pocket Friend",
+    page_icon="💚",
+    layout="wide"
+)
+
+init_db()
+
+st.title("💚 Pocket Friend")
+st.caption("Your money. Your friend. | Your friendly AI money companion")
+
+st.sidebar.header("⚙️ Budget Settings")
+monthly_budget = st.sidebar.number_input(
+    "Monthly budget (₹)",
+    min_value=0,
+    value=5000,
+    step=500
+)
+
+st.sidebar.info("Start simple. Track your spending and build better habits.")
+
+st.subheader("💰 Your Financial Overview")
+
+summary = get_summary(monthly_budget)
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Monthly Budget", f"₹{monthly_budget:,.0f}")
+col2.metric("Total Spent", f"₹{summary['total_spent']:,.0f}")
+col3.metric("Money Remaining", f"₹{monthly_budget - summary['total_spent']:,.0f}")
+
+st.divider()
+
+st.subheader("➕ Add an Expense")
+
+with st.form("expense_form", clear_on_submit=True):
+    amount = st.number_input("Amount (₹)", min_value=1.0, value=50.0, step=10.0)
+    category = st.selectbox(
+        "Category",
+        ["Food", "Travel", "Education", "Shopping", "Entertainment", "Health", "Other"]
+    )
+    note = st.text_input("What did you spend on?", placeholder="e.g. Lunch at college")
+    submitted = st.form_submit_button("Save Expense")
+
+    if submitted:
+        add_expense(amount, category, note)
+        st.success("Expense saved successfully!")
+        st.rerun()
+
+st.divider()
+
+st.subheader("📊 Your Expense History")
+
+expenses = get_expenses()
+
+if not expenses.empty:
+    st.dataframe(expenses, use_container_width=True, hide_index=True)
+    st.bar_chart(expenses.groupby("category")["amount"].sum())
+else:
+    st.info("No expenses yet. Add your first expense above!")
+
+st.divider()
+
+st.subheader("🤝 Ask Pocket Friend")
+
+question = st.chat_input(
+    "Try: How much have I spent this month?"
+)
+
+if question:
+    q = question.lower()
+    summary = get_summary(monthly_budget)
+
+    if "spent" in q or "expense" in q:
+        answer = f"You have spent ₹{summary['total_spent']:,.0f} so far."
+    elif "remaining" in q or "left" in q or "budget" in q:
+        remaining = monthly_budget - summary["total_spent"]
+        answer = f"You have ₹{remaining:,.0f} remaining in your monthly budget."
+    elif "save" in q:
+        answer = "Try setting a savings target and reviewing your expenses regularly."
+    else:
+        answer = (
+            "I'm your Pocket Friend! You can ask about your spending, "
+            "remaining budget, or savings."
+        )
+
+    st.chat_message("user").write(question)
+    st.chat_message("assistant").write(answer)
+
+st.caption("Pocket Friend MVP • Your financial data is stored locally.")
+
+
+
+
+
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+data/*.db
+
+
+
+
+
+
+
+
